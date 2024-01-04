@@ -1,0 +1,3 @@
+SECRET_KEY=Your_Secret_Key
+BUCKET_URL=Firebase_Storage_Bucket_Url
+url=MongoDB_Database_URI
