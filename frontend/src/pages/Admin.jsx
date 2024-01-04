@@ -384,8 +384,10 @@ const Admin=({Logout})=>{
             
                 <div className="mt-8 ">
                     <div className="flex justify-between w-full">
-            <button className="bg-red-500" onClick={()=>deleteUser(user)}><i><FontAwesomeIcon icon={faTrash}/></i></button>
-        </div>
+                        {user.role!=='admin'?
+                        <button className="bg-red-500" onClick={()=>deleteUser(user)}><i><FontAwesomeIcon icon={faTrash}/></i></button>
+                        :<></>}
+                    </div>
             <div className="flex flex-col p-2">
                 <span className="px-1">{user._id}</span>
                 <span className="px-1">{user.name}</span>
