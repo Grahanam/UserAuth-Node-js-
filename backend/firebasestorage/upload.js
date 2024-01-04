@@ -1,6 +1,7 @@
 const bucket=require('../firebaseadmin')
 const { promisify } = require('util');
 
+//save file to firebase storage 
 const uploadFile = promisify((buffer, filename, mimetype,uuid, cb) => {
     const fileUpload = bucket.file(filename);
     const blobStream = fileUpload.createWriteStream({

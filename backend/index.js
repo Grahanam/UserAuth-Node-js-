@@ -10,8 +10,10 @@ const path=require('path')
 const saltRounds = 10;
 const cors=require('cors')
 
+//Routes
 const userRoute=require('./routes/userRoute')
 const adminRoute=require('./routes/adminRoute')
+
 
 app.use(express.static(path.join(__dirname, 'dist')));
 app.use(express.json())
@@ -31,7 +33,7 @@ app.listen(port,()=>{
 })
 
 
-
+//MongoDB
 mongoose.connect(url)
 const db=mongoose.connection
 db.on('error',(error)=>{

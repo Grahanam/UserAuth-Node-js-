@@ -29,7 +29,7 @@ const checkMobile=(number)=>{
 
 route.post('/login',async(req,res)=>{
     try{
-        console.log(req.body)
+        // console.log(req.body)
         const {email,number,password}=req.body
         let finduser
         if(!password){
@@ -71,28 +71,34 @@ route.post('/login',async(req,res)=>{
     }
 })
 
+
+//Signup request
 route.post('/signup',upload.single('file'),async(req,res)=>{
     try{
         // console.log(req.body)
         // console.log(req.file)
         let {number,email,name,password}=req.body
+
+        //check if number or email provided
         if(number || email){
+            //validate number
             if(number){
                 number=parseInt(number)
-                const regex=/^\d+$/
-                if(typeof(number)!=='number' || !regex.test(number) || number.toString().length!==10 ){
+                if(!checkMobile(number) || number.toString().length!==10 ){
                     return res.status(402).json({message:'Provide Valid Number'})
                 }
+                //check if user with this number already present
                 let finduser=await userModel.findOne({mobile:number})
                 if(finduser){
                     return res.status(402).json({message:'User with this Number already exist'})
                 }
             }
+            //validate email
             if(email){
-               const regex=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-               if(!regex.test(email)){
+               if(!checkEmail(email)){
                     return res.status(402).json({message:'Provide Valid Email'})
                }
+               //check if user with this email already present
                let finduser=await userModel.findOne({email:email})
                 if(finduser){
                     return res.status(402).json({message:'User with this Email already exist'})
@@ -102,11 +108,14 @@ route.post('/signup',upload.single('file'),async(req,res)=>{
         }else{
             return res.status(402).json({message:'Provide email or number'})
         }
+
+        //validate password
+        password=password.trim()
         if(password.length<6 || password.length>10){
             return res.status(402).json({message:'Password length min-6 to max-10'})
         }
+        //validate name
         if(name){
-            const regex=/^\S.*\S$/
             name=name.trim()
             if(name.length==0){
                 return res.status(402).json({message:'Provide valid name'})
@@ -115,20 +124,26 @@ route.post('/signup',upload.single('file'),async(req,res)=>{
         }else{
             return res.status(402).json({message:'Provide name'})
         }
-
+        
+        //hash password
         const hash=await bcrypt.hash(password,saltRounds)
         
+
         const newUser=new userModel()
+
         if(req.file){
+            //validate profile image type
             let filemime=req.file.mimetype
-            console.log(filemime)
+            // console.log(filemime)
             let allowedfile=['image/png','image/jpeg','image/jpg']
             if(!allowedfile.includes(filemime)){
                 return res.status(400).json({message:'Only jpeg,jpg and png images are allowed'})
             }
+            //save image to firebase storage
             const filename = `ipl/profile_img/${Date.now()}_${req.file.originalname}`;
             const uuid=UUID()
             const fileURL = await uploadFile(req.file.buffer, filename, req.file.mimetype,uuid);
+            //save path and image url to image oject
             const image={
                url:fileURL,
                path:filename
@@ -148,7 +163,8 @@ route.post('/signup',upload.single('file'),async(req,res)=>{
            newUser.email=email
         }
         
-        console.log(newUser)
+        // console.log(newUser)
+        //save user
         const saveUser=await newUser.save()
 
         console.log('saveuser',saveUser)
@@ -161,10 +177,11 @@ route.post('/signup',upload.single('file'),async(req,res)=>{
 })
 
 
-//Single User
+//Single User request 
 route.get('/:id',useradminAuth,async(req,res)=>{
     try{
         const id=req.params.id
+        //find user by id
         const User=await userModel.findById(id)
         res.status(200).json({user:User})
     }catch(err){
@@ -181,6 +198,8 @@ route.put('/:id',useradminAuth,upload.single('file'),async(req,res)=>{
         // console.log(req.body)
         const id=req.params.id
         const finduser=await userModel.findById(id)
+
+        //check if user already has mobile number
         if(!finduser.mobile&&number){
             if(!checkMobile(number)){
                return res.status(400).json({message:'Invalid Mobile'}) 
@@ -191,6 +210,7 @@ route.put('/:id',useradminAuth,upload.single('file'),async(req,res)=>{
             }
             finduser.mobile=number
         }
+        //check if user already has email
         if(!finduser.email&&email){
             if(!checkEmail(number)){
                 return res.status(400).json({message:'Invalid Email'}) 
@@ -208,19 +228,19 @@ route.put('/:id',useradminAuth,upload.single('file'),async(req,res)=>{
             finduser.name=name
         }
         if(req.file){
-
+            //validate profile image type
             let filemime=req.file.mimetype
-            console.log(filemime)
+            // console.log(filemime)
             let allowedfile=['image/png','image/jpeg','image/jpg']
             if(!allowedfile.includes(filemime)){
                 return res.status(400).json({message:'Only jpeg,jpg and png images are allowed'})
             }
-            // if(filemime!='image/png'&&filemime!='image/jpeg'&&filemime!='image/jpg'){
-                
-            // }
+            
+            //delete old image before update
             if(finduser.image.path){
                 await bucket.file(finduser.image.path).delete()
             }
+            //save new image
             const filename = `ipl/profile_img/${Date.now()}_${req.file.originalname}`;
             const uuid=UUID()
             const fileURL = await uploadFile(req.file.buffer, filename, req.file.mimetype,uuid);
@@ -231,9 +251,9 @@ route.put('/:id',useradminAuth,upload.single('file'),async(req,res)=>{
             finduser.image=image   
         }
         const updateuser=await userModel.findByIdAndUpdate(finduser._id,finduser,{new:true})
+
         res.status(200).json({data:updateuser,message:'User Updated Successfully'})
-        // const User=await userModel.findByIdAndUpdate(req.params.id)
-        // res.status(200).json({user:User})
+       
     }catch(err){
         console.log(err)
         res.status(500).json({message:'Internal Server Error'})
@@ -243,12 +263,14 @@ route.put('/:id',useradminAuth,upload.single('file'),async(req,res)=>{
 //Delete User
 route.delete('/:id',useradminAuth,async(req,res)=>{
     try{
-        console.log(req.params.id)
+        // console.log(req.params.id)
         const id=req.params.id
         const finduser=await userModel.findById(id)
+        //delete profile image 
         if(finduser.image.url){
             await bucket.file(finduser.image.path).delete()
         }
+        //delete user
         const User=await userModel.findByIdAndDelete(finduser._id)
         res.status(200).json({message:'User Deleted Successfully'})
     }catch(err){
